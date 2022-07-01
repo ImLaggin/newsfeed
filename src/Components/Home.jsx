@@ -7,23 +7,45 @@ import {
   Typography,
   Button,
   InputBase,
+  TextField,
 } from "@mui/material";
 import { useSelector, useDispatch } from "react-redux";
 import { fetch } from "../redux/trend";
 import { fetchSearch } from "../redux/search";
 import { feedAdded } from "../redux/feed";
+import { logout } from "../redux/login";
+import { useNavigate } from "react-router-dom";
+var AES = require("crypto-js/aes");
+var CryptoJS = require("crypto-js");
 
 const Home = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [data, setData] = useState(null);
-  const [feed, setFeedData] = useState({ text: "", gif: [] });
+  const [feed, setFeedData] = useState({ text: "", gif: [], title: "" });
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const getData = async () => {
     await dispatch(fetch()).then((res) => setData(res.payload.data));
   };
+  const isLoggedIn = useSelector((state) => state.login.isLoggedIn);
 
-  var feedData = useSelector((state) => state.feed.data);
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigate("/");
+    }
+  }, [isLoggedIn]);
+
+  var feedData = useSelector((state) => state.feed.data).map((feed) => {
+    console.log(feed);
+    const answer = AES.decrypt(feed.text, "secret key").toString(
+      CryptoJS.enc.Utf8
+    );
+    const title = AES.decrypt(feed.title, "secret key").toString(
+      CryptoJS.enc.Utf8
+    );
+    return { ...feed, text: answer, title: title };
+  });
 
   const getSearch = async (search) => {
     await dispatch(fetchSearch(search)).then((res) => {
@@ -47,32 +69,50 @@ const Home = () => {
   };
 
   const handleFeed = () => {
-    if (feed.text.length > 0) {
-      dispatch(feedAdded(feed));
-      setFeedData({ text: "", gif: [] });
+    if (feed.text.length > 0 && feed.title.length > 0) {
+      var feedEncrypted = AES.encrypt(feed.text, "secret key").toString();
+      console.log(
+        console.log(
+          AES.decrypt(feedEncrypted, "secret key").toString(CryptoJS.enc.Utf8)
+        )
+      );
+      var feedEncryptedTitle = AES.encrypt(feed.title, "secret key").toString();
+
+      dispatch(
+        feedAdded({ ...feed, text: feedEncrypted, title: feedEncryptedTitle })
+      );
+      setFeedData({ text: "", gif: [], title: "" });
     }
   };
 
   return (
     <Stack spacing={3}>
-      <Paper
-        elevation={0}
-        sx={{ background: "#222", color: "white", py: 3, px: 3 }}
-      >
-        <Typography fontSize={"30px"} textAlign='center'>
-          Post Your Feeds
-        </Typography>
-      </Paper>
+      <Grid container spacing={3} alignItems='center'>
+        <Grid item xs={11}>
+          <h1>Post Your Feeds</h1>
+        </Grid>
+        <Grid item xs={1}>
+          <Button variant='outlined' onClick={() => dispatch(logout())}>
+            Logout
+          </Button>
+        </Grid>
+      </Grid>
+      <TextField
+        label='Title'
+        value={feed.title}
+        fullWidth
+        onChange={(e) => setFeedData({ ...feed, title: e.target.value })}
+      />
       <Box
         sx={{
           overflowY: "scroll",
           maxHeight: "300px",
-          border: "1px solid black",
-          p: 3,
         }}
       >
-        <InputBase
+        <TextField
           sx={{}}
+          label='Posts'
+          fullWidth
           placeholder="What's on your mind"
           multiline
           rows={4}
@@ -175,21 +215,20 @@ const Home = () => {
             <Stack
               sx={{
                 border: "1px solid #222",
-                p: 2,
+                p: 1,
+                borderRadius: "20px",
                 maxHeight: "800px",
-                overflowY: "scroll",
               }}
             >
               <Paper
                 elevation={0}
                 sx={{
-                  py: 3,
-                  px: 3,
+                  py: 1,
+                  px: 2,
                 }}
               >
-                <Typography fontSize={"30px"} textAlign='center'>
-                  {item.text}
-                </Typography>
+                <h1>{item.title}</h1>
+                <Typography fontSize={"20px"}>{item.text}</Typography>
               </Paper>
               {item.gif.map((gif, index) => (
                 <Box maxWidth={"300px"} key={index}>
