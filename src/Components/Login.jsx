@@ -1,9 +1,8 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Container, TextField, Stack } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { login } from "../redux/login";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
 var SHA256 = require("crypto-js/sha256");
 var MD5 = require("crypto-js/md5");
 var AES = require("crypto-js/aes");
@@ -46,6 +45,7 @@ const Login = () => {
         <TextField
           label='Password'
           variant='outlined'
+          type="password"
           fullWidth
           value={password}
           onChange={(e) => setPassword(e.target.value)}
